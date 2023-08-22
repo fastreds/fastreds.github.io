@@ -1,3 +1,30 @@
+<script>
+
+  function getUrl(){
+     //Se obtiene el valor de la URL desde el navegador
+     var actual = window.location+'';
+     //Se realiza la división de la URL
+     var split = actual.split("/");
+     //Se obtiene el ultimo valor de la URL
+     var id = split[split.length-1];
+     console.log(id);
+}
+
+// Esta es la url que pones de ejemplo:
+var mi_url = "/index.php/view/corte/8";
+
+// En este arreglo guardaremos la URL "separada por la barra diagonal":
+var arreglo_datos = mi_url.split('/');
+
+// En una variable separada almacenamos el valor que se encuentra al final de la URL.
+var valor_a_obtener = arreglo_datos[arreglo_datos.length - 1];
+
+// Imprimimos el valor obtenido "tanto en el control de tipo (span) como en la consola.
+document.getElementById('spn_resultado').innerHTML = valor_a_obtener;
+console.log(valor_a_obtener);
+  
+</script>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,6 +35,7 @@
 <tr>
 <td style="width: 43.6171%;">Congreso tecnolog&iacute;as en Salud 2023</td>
 <td style="width: 12.0433%;"><img src="https://chart.googleapis.com/chart?chs=200x200&amp;cht=qr&amp;chl=204020472" alt="" width="200" height="200" /></td>
+<td> El resultado es: <span id="spn_resultado" /> </td>
 </tr>
 </tbody>
 </table>
