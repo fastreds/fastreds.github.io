@@ -11,10 +11,10 @@
 }
 
 // Esta es la url que pones de ejemplo:
-var mi_url = "/index.php/view/corte/8";
+var mi_url = "?corte=8";
 
 // En este arreglo guardaremos la URL "separada por la barra diagonal":
-var arreglo_datos = mi_url.split('/');
+var arreglo_datos = mi_url.split('?');
 
 // En una variable separada almacenamos el valor que se encuentra al final de la URL.
 var valor_a_obtener = arreglo_datos[arreglo_datos.length - 1];
