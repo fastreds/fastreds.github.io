@@ -110,20 +110,38 @@
 
             <div class="github-config">
               <div class="form-group">
-                <label for="githubToken">GitHub Personal Access Token</label>
+                <label for="githubToken">
+                  GitHub Personal Access Token
+                  <a href="https://github.com/settings/tokens/new?description=Dashboard%20Personal&scopes=repo"
+                    target="_blank" class="help-link" title="Crear nuevo token en GitHub">
+                    🔗 Crear Token
+                  </a>
+                </label>
                 <div class="input-with-button">
                   <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx">
                   <button id="saveTokenBtn" class="btn btn-small">Guardar</button>
                 </div>
-                <small>Necesitas un token con permisos 'repo' para ver repositorios privados</small>
+                <small>
+                  Necesitas un token con permisos <strong>repo</strong> para ver repositorios privados.
+                  <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
+                    target="_blank" class="help-link-small">
+                    📖 Más info
+                  </a>
+                </small>
               </div>
 
               <div class="form-group">
-                <label for="githubUsername">Usuario de GitHub</label>
+                <label for="githubUsername">
+                  Usuario de GitHub
+                  <a href="https://github.com" target="_blank" class="help-link" title="Ir a GitHub">
+                    🔗 GitHub
+                  </a>
+                </label>
                 <div class="input-with-button">
                   <input type="text" id="githubUsername" placeholder="tu-usuario">
                   <button id="loadReposBtn" class="btn btn-small">Cargar</button>
                 </div>
+                <small>Puedes cambiar de usuario para ver repositorios de diferentes cuentas</small>
               </div>
             </div>
 

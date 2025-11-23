@@ -134,17 +134,23 @@ const firebaseConfig = {
 };
 ```
 
-### Reglas de Firestore Recomendadas
+### Reglas de Firestore
+
+**Base de datos**: `default`
+
 ```javascript
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
+  match /databases/default/documents {
+    // Colección principal del dashboard
+    match /fastreds.github.io/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
 ```
+
+📖 Más información: [FIRESTORE-DATABASE.md](FIRESTORE-DATABASE.md)
 
 ## 📱 Responsive Design
 

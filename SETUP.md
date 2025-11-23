@@ -9,9 +9,10 @@ Para proteger los datos de tus usuarios, debes configurar las reglas de segurida
 1. Ve a [Firebase Console](https://console.firebase.google.com/)
 2. Selecciona tu proyecto: **aid-server**
 3. En el menú lateral, ve a **Firestore Database**
-4. Haz clic en la pestaña **Reglas**
-5. Copia y pega el contenido del archivo `firestore.rules`
-6. Haz clic en **Publicar**
+4. **Importante**: Asegúrate de estar en la base de datos **"default"** (selector en la parte superior)
+5. Haz clic en la pestaña **Reglas**
+6. Copia y pega el contenido del archivo `firestore.rules`
+7. Haz clic en **Publicar**
 
 ### 2. Habilitar Método de Autenticación
 
@@ -53,8 +54,8 @@ Para ver repositorios privados:
 El dashboard creará automáticamente esta estructura:
 
 ```
-users/
-  └── {userId}/
+fastreds.github.io/          # Colección principal del dashboard
+  └── {userId}/              # Documento por usuario (ID de Firebase Auth)
       ├── email: string
       ├── displayName: string
       ├── photoURL: string
@@ -63,6 +64,8 @@ users/
       ├── lastLogin: timestamp
       └── updatedAt: timestamp
 ```
+
+**Nota**: Cada usuario tiene su propio documento identificado por su `userId` de Firebase Authentication.
 
 ### 6. Verificar Configuración
 

@@ -134,7 +134,7 @@ logoutBtn.addEventListener('click', async () => {
 // Save User Data to Firestore
 async function saveUserData(user) {
     try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'fastreds.github.io', user.uid);
         await setDoc(userRef, {
             email: user.email,
             displayName: user.displayName || user.email.split('@')[0],
@@ -149,7 +149,7 @@ async function saveUserData(user) {
 // Load User Data
 async function loadUserData(user) {
     try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'fastreds.github.io', user.uid);
         const userDoc = await getDoc(userRef);
 
         if (userDoc.exists()) {
@@ -184,7 +184,7 @@ saveTokenBtn.addEventListener('click', async () => {
     }
 
     try {
-        const userRef = doc(db, 'users', currentUser.uid);
+        const userRef = doc(db, 'fastreds.github.io', currentUser.uid);
         await setDoc(userRef, {
             githubToken: token,
             updatedAt: serverTimestamp()
@@ -210,7 +210,7 @@ loadReposBtn.addEventListener('click', async () => {
     // Save username to Firestore
     if (currentUser) {
         try {
-            const userRef = doc(db, 'users', currentUser.uid);
+            const userRef = doc(db, 'fastreds.github.io', currentUser.uid);
             await setDoc(userRef, {
                 githubUsername: username,
                 updatedAt: serverTimestamp()
