@@ -67,10 +67,27 @@ Dashboard moderno y funcional para gestionar proyectos de GitHub y otros recurso
 
 ## 🔒 Seguridad
 
-- Los tokens de GitHub se almacenan de forma segura en Firestore
-- Solo el usuario autenticado puede acceder a sus propios datos
-- Las contraseñas se gestionan mediante Firebase Authentication
-- Comunicación HTTPS con GitHub API
+### Credenciales de Firebase
+
+Las credenciales de Firebase en `firebase-config.js` son **públicas por diseño**. Esto es completamente normal y seguro.
+
+**¿Por qué?**
+- Firebase está diseñado para aplicaciones web del lado del cliente
+- Las API keys solo identifican tu proyecto, no otorgan acceso
+- La seguridad real viene de las **Reglas de Firestore** y la **Autenticación**
+
+### Protección de Datos
+
+Tu dashboard está protegido por:
+- ✅ **Reglas de Firestore**: Solo tú puedes ver tus datos
+- ✅ **Autenticación**: Requiere email y contraseña
+- ✅ **Dominios Autorizados**: Solo dominios específicos pueden usar el proyecto
+- ✅ **Tokens Protegidos**: Los tokens de GitHub se almacenan de forma segura
+
+### Más Información
+
+Para entender completamente cómo está protegido tu dashboard, lee:
+📖 **[SECURITY.md](SECURITY.md)** - Documentación completa de seguridad
 
 ## 📁 Estructura del Proyecto
 
@@ -78,8 +95,16 @@ Dashboard moderno y funcional para gestionar proyectos de GitHub y otros recurso
 fastreds.github.io/
 ├── index.html          # Estructura HTML principal
 ├── styles.css          # Estilos y sistema de diseño
-├── app.js             # Lógica de la aplicación
-└── README.md          # Documentación
+├── app.js              # Lógica de la aplicación
+├── firebase-config.js  # Configuración de Firebase
+├── firestore.rules     # Reglas de seguridad de Firestore
+├── .nojekyll           # Configuración para GitHub Pages
+├── .gitignore          # Archivos a ignorar
+├── README.md           # Documentación principal
+├── SETUP.md            # Guía de configuración
+├── DEPLOYMENT.md       # Guía de deployment
+├── SECURITY.md         # Documentación de seguridad
+└── CHECKLIST.md        # Checklist de deployment
 ```
 
 ## 🎨 Sistema de Diseño
