@@ -12,6 +12,13 @@ import {
     doc,
     setDoc,
     getDoc,
+    collection,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    getDocs,
+    query,
+    orderBy,
     serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
@@ -401,3 +408,243 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// ==================== NOTES FUNCTIONALITY ====================
+
+// Notes Elements
+const noteTitle = document.getElementById('noteTitle');
+const noteContent = document.getElementById('noteContent');
+const addNoteBtn = document.getElementById('addNoteBtn');
+const cancelEditNoteBtn = document.getElementById('cancelEditNoteBtn');
+const notesContainer = document.getElementById('notesContainer');
+const notesLoading = document.getElementById('notesLoading');
+
+// Notes State
+let currentEditingNoteId = null;
+
+// Load Notes
+async function loadNotes() {
+    if (!currentUser) return;
+
+    notesLoading.classList.remove('hidden');
+    notesContainer.innerHTML = '';
+
+    try {
+        const notesRef = collection(db, 'fastreds.github.io', currentUser.uid, 'notes');
+        const q = query(notesRef, orderBy('updatedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            displayEmptyNotes();
+        } else {
+            querySnapshot.forEach((doc) => {
+                const noteData = doc.data();
+                const noteElement = createNoteElement(doc.id, noteData);
+                notesContainer.appendChild(noteElement);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading notes:', error);
+        displayError('Error al cargar las notas');
+    } finally {
+        notesLoading.classList.add('hidden');
+    }
+}
+
+// Display Empty Notes State
+function displayEmptyNotes() {
+    notesContainer.innerHTML = \
+    <div class="notes-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <h3>No hay notas aún</h3>
+        <p>Crea tu primera nota usando el formulario de arriba</p>
+    </div>
+    \;
+}
+
+// Create Note Element
+function createNoteElement(id, noteData) {
+    const noteDiv = document.createElement('div');
+    noteDiv.className = 'note-item';
+    noteDiv.dataset.noteId = id;
+
+    const date = noteData.updatedAt?.toDate() || new Date();
+    const formattedDate = formatDate(date.toISOString());
+
+    noteDiv.innerHTML = \
+        <div class="note-header">
+            <h3 class="note-title">\</h3>
+            <div class="note-actions">
+                <button class="note-btn edit-btn" onclick="editNote('\')" title="Editar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Editar
+                </button>
+                <button class="note-btn delete-btn" onclick="deleteNote('\')" title="Eliminar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Eliminar
+                </button>
+            </div>
+        </div>
+        <div class="note-content">\</div>
+        <div class="note-footer">
+            <span class="note-date">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                \
+            </span>
+        </div>
+    \;
+
+    return noteDiv;
+}
+
+// Add/Update Note
+addNoteBtn.addEventListener('click', async () => {
+    const title = noteTitle.value.trim();
+    const content = noteContent.value.trim();
+
+    if (!title && !content) {
+        displayError('Por favor ingresa un título o contenido para la nota');
+        return;
+    }
+
+    if (!currentUser) return;
+
+    try {
+        const noteData = {
+            title: title || 'Sin título',
+            content: content,
+            updatedAt: serverTimestamp()
+        };
+
+        if (currentEditingNoteId) {
+            // Update existing note
+            const noteRef = doc(db, 'fastreds.github.io', currentUser.uid, 'notes', currentEditingNoteId);
+            await updateDoc(noteRef, noteData);
+            showNotification('Nota actualizada correctamente', 'success');
+            currentEditingNoteId = null;
+            addNoteBtn.innerHTML = \
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+                Agregar Nota
+            \;
+            cancelEditNoteBtn.classList.add('hidden');
+        } else {
+            // Add new note
+            noteData.createdAt = serverTimestamp();
+            const notesRef = collection(db, 'fastreds.github.io', currentUser.uid, 'notes');
+            await addDoc(notesRef, noteData);
+            showNotification('Nota agregada correctamente', 'success');
+        }
+
+        noteTitle.value = '';
+        noteContent.value = '';
+        await loadNotes();
+    } catch (error) {
+        console.error('Error saving note:', error);
+        displayError('Error al guardar la nota');
+    }
+});
+
+// Edit Note (make function global)
+window.editNote = async (noteId) => {
+    if (!currentUser) return;
+
+    try {
+        const noteRef = doc(db, 'fastreds.github.io', currentUser.uid, 'notes', noteId);
+        const noteDoc = await getDoc(noteRef);
+
+        if (noteDoc.exists()) {
+            const noteData = noteDoc.data();
+            noteTitle.value = noteData.title || '';
+            noteContent.value = noteData.content || '';
+            currentEditingNoteId = noteId;
+
+            addNoteBtn.innerHTML = \
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+                Actualizar Nota
+            \;
+            cancelEditNoteBtn.classList.remove('hidden');
+
+            // Scroll to form
+            noteTitle.focus();
+            noteTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } catch (error) {
+        console.error('Error loading note for edit:', error);
+        displayError('Error al cargar la nota');
+    }
+};
+
+// Cancel Edit
+cancelEditNoteBtn.addEventListener('click', () => {
+    currentEditingNoteId = null;
+    noteTitle.value = '';
+    noteContent.value = '';
+    addNoteBtn.innerHTML = \
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+        Agregar Nota
+    \;
+    cancelEditNoteBtn.classList.add('hidden');
+});
+
+// Delete Note (make function global)
+window.deleteNote = async (noteId) => {
+    if (!currentUser) return;
+
+    if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
+        return;
+    }
+
+    try {
+        const noteRef = doc(db, 'fastreds.github.io', currentUser.uid, 'notes', noteId);
+        await deleteDoc(noteRef);
+        showNotification('Nota eliminada correctamente', 'success');
+        await loadNotes();
+
+        // Cancel edit if we're editing the deleted note
+        if (currentEditingNoteId === noteId) {
+            currentEditingNoteId = null;
+            noteTitle.value = '';
+            noteContent.value = '';
+            addNoteBtn.innerHTML = \
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+                Agregar Nota
+            \;
+            cancelEditNoteBtn.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error deleting note:', error);
+        displayError('Error al eliminar la nota');
+    }
+};
+
+// Load notes when user logs in
+const originalShowDashboard = showDashboard;
+showDashboard = function () {
+    originalShowDashboard();
+    loadNotes();
+};
