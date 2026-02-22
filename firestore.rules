@@ -1,26 +1,23 @@
 rules_version = '2';
 
-// Especificar la base de datos "default"
 service cloud.firestore {
-  match /databases/default/documents {
+  match /databases/{database}/documents {
     
-    // Colección principal del dashboard fastreds.github.io
-    match /fastreds.github.io/{userId} {
-      // Solo usuarios autenticados pueden leer y escribir
-      // Cada usuario solo puede acceder a su propio documento
+    // Core collection and all its subcollections
+    match /fastreds.github.io/{userId}/{document=**} {
+      // Allow access if the authenticated user's ID matches the document path ID
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Validación adicional para creación
-      allow create: if request.auth != null 
-                    && request.auth.uid == userId
-                    && request.resource.data.keys().hasAll(['email']);
-      
-      // Validación para actualización
-      allow update: if request.auth != null 
-                    && request.auth.uid == userId;
     }
     
-    // Denegar acceso a cualquier otra colección no especificada
+    // Fallback for legacy dot-notation collections if the user is using them
+    match /{collectionName}/{docId} {
+      allow read, write: if request.auth != null 
+                        && collectionName.startsWith("fastreds.github.io")
+                        && (resource == null || resource.data.userId == request.auth.uid)
+                        && (request.resource == null || request.resource.data.userId == request.auth.uid);
+    }
+
+    // Deny all other access
     match /{document=**} {
       allow read, write: if false;
     }

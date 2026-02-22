@@ -1,4 +1,3 @@
-// Firebase Configuration and Initialization
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import {
     getAuth,
@@ -23,7 +22,6 @@ import {
     serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-// Import Firebase configuration
 import { firebaseConfig } from './firebase-config.js';
 
 // Initialize Firebase
@@ -31,624 +29,527 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM Elements
-const loginScreen = document.getElementById('loginScreen');
-const dashboardScreen = document.getElementById('dashboardScreen');
-const emailLoginForm = document.getElementById('emailLoginForm');
-const toggleSignupLink = document.getElementById('toggleSignup');
-const authError = document.getElementById('authError');
-const logoutBtn = document.getElementById('logoutBtn');
-const userName = document.getElementById('userName');
-const userAvatar = document.getElementById('userAvatar');
+// --- State Management ---
+const state = {
+    user: null,
+    repos: [],
+    projects: [],
+    view: 'dashboard',
+    modals: {
+        active: null
+    }
+};
 
-// GitHub Elements
-const githubToken = document.getElementById('githubToken');
-const githubUsername = document.getElementById('githubUsername');
-const saveTokenBtn = document.getElementById('saveTokenBtn');
-const loadReposBtn = document.getElementById('loadReposBtn');
-const reposContainer = document.getElementById('reposContainer');
-const reposLoading = document.getElementById('reposLoading');
+// --- DOM Elements ---
+const els = {
+    authScreen: document.getElementById('authScreen'),
+    appContainer: document.getElementById('appContainer'),
+    authForm: document.getElementById('authForm'),
+    authEmail: document.getElementById('authEmail'),
+    authPassword: document.getElementById('authPassword'),
+    authTitle: document.getElementById('authTitle'),
+    authBtnText: document.getElementById('authBtnText'),
+    authToggleLink: document.getElementById('authToggleLink'),
+    authError: document.getElementById('authError'),
+    
+    userName: document.getElementById('userName'),
+    userAvatar: document.getElementById('userAvatar'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    
+    navItems: document.querySelectorAll('.nav-item'),
+    sections: document.querySelectorAll('.view-section'),
+    
+    ghUsername: document.getElementById('ghUsername'),
+    ghToken: document.getElementById('ghToken'),
+    saveGhConfig: document.getElementById('saveGhConfig'),
+    loadReposBtn: document.getElementById('loadReposBtn'),
+    projectsLoading: document.getElementById('projectsLoading'),
+    projectsGrid: document.getElementById('projectsGrid'),
+    
+    vaultGrid: document.getElementById('vaultGrid'),
+    notesGrid: document.getElementById('notesGrid'),
+    
+    modalOverlay: document.getElementById('modalOverlay'),
+    closeModalBtns: document.querySelectorAll('.closeModalBtn'),
+    
+    openNewProjectModal: document.getElementById('openNewProjectModal'),
+    projName: document.getElementById('projName'),
+    projRepoSelect: document.getElementById('projRepoSelect'),
+    saveProjectBtn: document.getElementById('saveProjectBtn'),
+    
+    envVarsModal: document.getElementById('envVarsModal'),
+    envVarsProjName: document.getElementById('envVarsProjName'),
+    envVarsList: document.getElementById('envVarsList'),
+    addEnvVarBtn: document.getElementById('addEnvVarBtn'),
+    
+    openNewSecretModal: document.getElementById('openNewSecretModal'),
+    secretTitle: document.getElementById('secretTitle'),
+    secretContent: document.getElementById('secretContent'),
+    secretCategory: document.getElementById('secretCategory'),
+    saveSecretBtn: document.getElementById('saveSecretBtn'),
+    
+    openNewNoteModal: document.getElementById('openNewNoteModal'),
+    noteTitle: document.getElementById('noteTitle'),
+    noteContent: document.getElementById('noteContent'),
+    saveNoteBtn: document.getElementById('saveNoteBtn'),
+    
+    projCount: document.getElementById('projCount'),
+    vaultCount: document.getElementById('vaultCount'),
+    notesCount: document.getElementById('notesCount')
+};
 
-// State
-let isSignupMode = false;
-let currentUser = null;
-
-// Auth State Observer
+// --- Initialization ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        currentUser = user;
-        await loadUserData(user);
-        showDashboard();
+        state.user = user;
+        els.authScreen.classList.add('hidden');
+        els.appContainer.classList.remove('hidden');
+        await loadInitialData();
+        setupDashboard();
     } else {
-        currentUser = null;
-        showLogin();
+        state.user = null;
+        els.authScreen.classList.remove('hidden');
+        els.appContainer.classList.add('hidden');
     }
 });
 
-// Show/Hide Screens
-function showLogin() {
-    loginScreen.classList.add('active');
-    dashboardScreen.classList.remove('active');
-}
+// --- Auth Functions ---
+let isSignupMode = false;
 
-function showDashboard() {
-    loginScreen.classList.remove('active');
-    dashboardScreen.classList.add('active');
-}
-
-// Display Error
-function displayError(message) {
-    authError.textContent = message;
-    authError.classList.remove('hidden');
-    setTimeout(() => {
-        authError.classList.add('hidden');
-    }, 5000);
-}
-
-// Email/Password Login/Signup
-emailLoginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        let result;
-        if (isSignupMode) {
-            result = await createUserWithEmailAndPassword(auth, email, password);
-            await saveUserData(result.user);
-        } else {
-            result = await signInWithEmailAndPassword(auth, email, password);
-        }
-    } catch (error) {
-        console.error('Error en autenticación:', error);
-        let errorMessage = 'Error en la autenticación. Intenta de nuevo.';
-
-        if (error.code === 'auth/user-not-found') {
-            errorMessage = 'Usuario no encontrado. ¿Quieres registrarte?';
-        } else if (error.code === 'auth/wrong-password') {
-            errorMessage = 'Contraseña incorrecta.';
-        } else if (error.code === 'auth/email-already-in-use') {
-            errorMessage = 'Este email ya está registrado.';
-        } else if (error.code === 'auth/weak-password') {
-            errorMessage = 'La contraseña debe tener al menos 6 caracteres.';
-        }
-
-        displayError(errorMessage);
-    }
-});
-
-// Toggle Signup/Login
-toggleSignupLink.addEventListener('click', (e) => {
+els.authToggleLink.addEventListener('click', (e) => {
     e.preventDefault();
     isSignupMode = !isSignupMode;
-
-    const submitBtn = emailLoginForm.querySelector('button[type="submit"]');
-    submitBtn.textContent = isSignupMode ? 'Registrarse' : 'Iniciar Sesión';
-    toggleSignupLink.textContent = isSignupMode ? 'Iniciar Sesión' : 'Regístrate';
-
-    const toggleText = document.querySelector('.toggle-auth');
-    toggleText.childNodes[0].textContent = isSignupMode ? '¿Ya tienes cuenta? ' : '¿No tienes cuenta? ';
+    els.authTitle.textContent = isSignupMode ? 'Crear Cuenta' : 'Bienvenido';
+    els.authBtnText.textContent = isSignupMode ? 'Registrarse' : 'Entrar';
+    els.authToggleLink.textContent = isSignupMode ? 'Inicia Sesión' : 'Regístrate';
+    document.getElementById('authToggleText').textContent = isSignupMode ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?';
 });
 
-// Logout
-logoutBtn.addEventListener('click', async () => {
+els.authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = els.authEmail.value;
+    const password = els.authPassword.value;
+    els.authError.classList.add('hidden');
+
     try {
-        await signOut(auth);
-    } catch (error) {
-        console.error('Error al cerrar sesión:', error);
-    }
-});
-
-// Save User Data to Firestore
-async function saveUserData(user) {
-    try {
-        const userRef = doc(db, 'fastreds.github.io', user.uid);
-        await setDoc(userRef, {
-            email: user.email,
-            displayName: user.displayName || user.email.split('@')[0],
-            photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=7877c6&color=fff`,
-            lastLogin: serverTimestamp()
-        }, { merge: true });
-    } catch (error) {
-        console.error('Error guardando datos del usuario:', error);
-    }
-}
-
-// Load User Data
-async function loadUserData(user) {
-    try {
-        const userRef = doc(db, 'fastreds.github.io', user.uid);
-        const userDoc = await getDoc(userRef);
-
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            userName.textContent = userData.displayName;
-            userAvatar.src = userData.photoURL;
-
-            // Load GitHub token if exists
-            if (userData.githubToken) {
-                githubToken.value = userData.githubToken;
-            }
-            if (userData.githubUsername) {
-                githubUsername.value = userData.githubUsername;
-            }
+        if (isSignupMode) {
+            await createUserWithEmailAndPassword(auth, email, password);
         } else {
-            userName.textContent = user.email.split('@')[0];
-            userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=7877c6&color=fff`;
+            await signInWithEmailAndPassword(auth, email, password);
         }
     } catch (error) {
-        console.error('Error cargando datos del usuario:', error);
+        els.authError.textContent = error.message;
+        els.authError.classList.remove('hidden');
+    }
+});
+
+els.logoutBtn.addEventListener('click', () => signOut(auth));
+
+// --- Navigation ---
+els.navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const view = item.dataset.view;
+        if (!view) return; // For links like "Calculadora"
+        
+        els.navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        els.sections.forEach(s => s.classList.remove('active'));
+        document.getElementById(`${view}View`).classList.add('active');
+        state.view = view;
+        
+        loadViewData(view);
+    });
+});
+
+// --- Modal Management ---
+function openModal(modalId) {
+    els.modalOverlay.classList.remove('hidden');
+    document.getElementById(modalId).classList.remove('hidden');
+    state.modals.active = modalId;
+}
+
+function closeModal() {
+    els.modalOverlay.classList.add('hidden');
+    if (state.modals.active) {
+        document.getElementById(state.modals.active).classList.add('hidden');
+        state.modals.active = null;
     }
 }
 
-// Save GitHub Token
-saveTokenBtn.addEventListener('click', async () => {
-    if (!currentUser) return;
-
-    const token = githubToken.value.trim();
-    if (!token) {
-        displayError('Por favor ingresa un token válido');
-        return;
-    }
-
-    try {
-        const userRef = doc(db, 'fastreds.github.io', currentUser.uid);
-        await setDoc(userRef, {
-            githubToken: token,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        showNotification('Token guardado correctamente', 'success');
-    } catch (error) {
-        console.error('Error guardando token:', error);
-        displayError('Error al guardar el token');
-    }
+els.closeModalBtns.forEach(btn => btn.addEventListener('click', closeModal));
+els.modalOverlay.addEventListener('click', (e) => {
+    if (e.target === els.modalOverlay) closeModal();
 });
 
-// Load GitHub Repositories
-loadReposBtn.addEventListener('click', async () => {
-    const username = githubUsername.value.trim();
-    const token = githubToken.value.trim();
-
-    if (!username) {
-        displayError('Por favor ingresa un nombre de usuario de GitHub');
-        return;
-    }
-
-    // Save username to Firestore
-    if (currentUser) {
-        try {
-            const userRef = doc(db, 'fastreds.github.io', currentUser.uid);
-            await setDoc(userRef, {
-                githubUsername: username,
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-        } catch (error) {
-            console.error('Error guardando username:', error);
+// --- User & GitHub Config ---
+async function loadInitialData() {
+    const userRef = doc(db, 'fastreds.github.io', state.user.uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        els.userName.textContent = data.displayName || state.user.email.split('@')[0];
+        els.userAvatar.src = data.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(els.userName.textContent)}&background=6366f1&color=fff`;
+        els.ghUsername.value = data.githubUsername || '';
+        els.ghToken.value = data.githubToken || '';
+        
+        if (data.githubUsername) {
+            await fetchGitHubRepos(data.githubUsername, data.githubToken);
         }
     }
+}
 
-    await loadRepositories(username, token);
+els.saveGhConfig.addEventListener('click', async () => {
+    const userRef = doc(db, 'fastreds.github.io', state.user.uid);
+    await setDoc(userRef, {
+        githubUsername: els.ghUsername.value,
+        githubToken: els.ghToken.value,
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+    showNotification('Configuración guardada', 'success');
 });
 
-// Fetch and Display Repositories
-async function loadRepositories(username, token) {
-    reposLoading.classList.remove('hidden');
-    reposContainer.innerHTML = '';
+els.loadReposBtn.addEventListener('click', () => fetchGitHubRepos(els.ghUsername.value, els.ghToken.value));
 
+async function fetchGitHubRepos(username, token) {
+    if (!username) return;
+    els.projectsLoading.classList.remove('hidden');
+    
     try {
-        const headers = {
-            'Accept': 'application/vnd.github.v3+json'
-        };
-
-        if (token) {
-            headers['Authorization'] = `token ${token}`;
+        const headers = {'Accept': 'application/vnd.github.v3+json'};
+        if (token) headers['Authorization'] = `token ${token}`;
+        
+        const response = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=100`, { headers });
+        if (response.ok) {
+            state.repos = await response.json();
+            updateRepoSelect();
+            if (state.view === 'projects') renderProjects();
         }
-
-        const response = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=100`, {
-            headers
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
-        }
-
-        const repos = await response.json();
-
-        if (repos.length === 0) {
-            reposContainer.innerHTML = '<p style="text-align: center; color: var(--gray-400);">No se encontraron repositorios</p>';
-            return;
-        }
-
-        repos.forEach(repo => {
-            const repoElement = createRepoElement(repo);
-            reposContainer.appendChild(repoElement);
-        });
-
-        showNotification(`${repos.length} repositorios cargados`, 'success');
-    } catch (error) {
-        console.error('Error cargando repositorios:', error);
-        displayError('Error al cargar los repositorios. Verifica el usuario y el token.');
+    } catch (e) {
+        console.error('Error fetching repos:', e);
     } finally {
-        reposLoading.classList.add('hidden');
+        els.projectsLoading.classList.add('hidden');
     }
 }
 
-// Create Repository Element
-function createRepoElement(repo) {
-    const div = document.createElement('div');
-    div.className = 'repo-item';
-    div.onclick = () => window.open(repo.html_url, '_blank');
+function updateRepoSelect() {
+    els.projRepoSelect.innerHTML = '<option value="">Ninguno</option>';
+    state.repos.forEach(repo => {
+        const opt = document.createElement('option');
+        opt.value = repo.full_name;
+        opt.textContent = repo.name;
+        els.projRepoSelect.appendChild(opt);
+    });
+}
 
-    const visibilityClass = repo.private ? 'private' : 'public';
-    const visibilityIcon = repo.private ? '🔒' : '🌐';
+// --- Projects Logic ---
+function setupDashboard() {
+    // Initial counts
+    updateCounts();
+}
 
-    div.innerHTML = `
-        <div class="repo-header">
-            <div class="repo-name">${repo.name}</div>
-            <div class="repo-visibility ${visibilityClass}">
-                ${visibilityIcon} ${repo.private ? 'Privado' : 'Público'}
-            </div>
-        </div>
-        ${repo.description ? `<div class="repo-description">${repo.description}</div>` : ''}
-        <div class="repo-stats">
-            <div class="repo-stat">
-                <svg viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
-                </svg>
-                ${repo.stargazers_count}
-            </div>
-            <div class="repo-stat">
-                <svg viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
-                </svg>
-                ${repo.forks_count}
-            </div>
-            ${repo.language ? `
-                <div class="repo-stat">
-                    <span style="width: 12px; height: 12px; border-radius: 50%; background: ${getLanguageColor(repo.language)}; display: inline-block;"></span>
-                    ${repo.language}
+async function updateCounts() {
+    // This is inefficient but keep it simple for now
+    const projs = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'projects'));
+    els.projCount.textContent = projs.size;
+    
+    const secrets = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'vault'));
+    els.vaultCount.textContent = secrets.size;
+    
+    const notes = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'notes'));
+    els.notesCount.textContent = notes.size;
+}
+
+els.openNewProjectModal.addEventListener('click', () => {
+    els.projName.value = '';
+    els.projRepoSelect.value = '';
+    openModal('projectModal');
+});
+
+els.saveProjectBtn.addEventListener('click', async () => {
+    const name = els.projName.value;
+    const repo = els.projRepoSelect.value;
+    if (!name) return;
+    
+    const projId = name.toLowerCase().replace(/ /g, '-');
+    await setDoc(doc(db, 'fastreds.github.io', state.user.uid, 'projects', projId), {
+        name,
+        repo,
+        createdAt: serverTimestamp()
+    });
+    
+    closeModal();
+    renderProjects();
+    updateCounts();
+});
+
+async function renderProjects() {
+    els.projectsGrid.innerHTML = '';
+    const querySnapshot = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'projects'));
+    
+    querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const card = document.createElement('div');
+        card.className = 'card project-card';
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="card-title">${data.name}</span>
+                <div class="item-actions">
+                    <button class="btn btn-icon btn-secondary btn-small del-proj" data-id="${docSnap.id}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                    <button class="btn btn-icon btn-primary btn-small edit-env" data-id="${docSnap.id}" data-name="${data.name}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    </button>
                 </div>
-            ` : ''}
-            <div class="repo-stat">
-                📅 ${formatDate(repo.updated_at)}
             </div>
-        </div>
-    `;
-
-    return div;
+            ${data.repo ? `<div class="badge badge-primary" style="margin-bottom: 12px; display: inline-block;">${data.repo}</div>` : ''}
+            <div id="env-preview-${docSnap.id}" class="text-dim" style="font-size: 0.8rem;">Cargando variables...</div>
+        `;
+        els.projectsGrid.appendChild(card);
+        
+        loadEnvPreview(docSnap.id);
+        
+        card.querySelector('.edit-env').onclick = () => openEnvVars(docSnap.id, data.name);
+        card.querySelector('.del-proj').onclick = async (e) => {
+            e.stopPropagation();
+            if(confirm('¿Eliminar proyecto y sus variables?')) {
+                await deleteDoc(doc(db, 'fastreds.github.io', state.user.uid, 'projects', docSnap.id));
+                renderProjects();
+                updateCounts();
+            }
+        };
+    });
 }
 
-// Get Language Color
-function getLanguageColor(language) {
-    const colors = {
-        'JavaScript': '#f1e05a',
-        'TypeScript': '#2b7489',
-        'Python': '#3572A5',
-        'Java': '#b07219',
-        'C++': '#f34b7d',
-        'C#': '#178600',
-        'PHP': '#4F5D95',
-        'Ruby': '#701516',
-        'Go': '#00ADD8',
-        'Rust': '#dea584',
-        'Swift': '#ffac45',
-        'Kotlin': '#F18E33',
-        'HTML': '#e34c26',
-        'CSS': '#563d7c',
-        'Vue': '#41b883',
-        'React': '#61dafb'
-    };
-    return colors[language] || '#8b949e';
+async function loadEnvPreview(projId) {
+    const envs = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'projects', projId, 'envVars'));
+    const container = document.getElementById(`env-preview-${projId}`);
+    if (envs.empty) {
+        container.textContent = 'Sin variables configuradas';
+    } else {
+        container.textContent = `${envs.size} variables de entorno`;
+    }
 }
 
-// Format Date
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+// --- Env Vars Logic ---
+let currentProjId = null;
 
-    if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Ayer';
-    if (diffDays < 7) return `Hace ${diffDays} días`;
-    if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} semanas`;
-    if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} meses`;
-    return `Hace ${Math.floor(diffDays / 365)} años`;
+async function openEnvVars(projId, projName) {
+    currentProjId = projId;
+    els.envVarsProjName.textContent = projName;
+    openModal('envVarsModal');
+    renderEnvVars();
 }
 
-// Show Notification
+async function renderEnvVars() {
+    els.envVarsList.innerHTML = '';
+    const envs = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'projects', currentProjId, 'envVars'));
+    
+    envs.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+            <div class="item-info">
+                <div class="item-name">${data.key}</div>
+                <div class="item-value">••••••••</div>
+            </div>
+            <div class="item-actions">
+                <button class="btn btn-icon btn-secondary btn-small copy-btn" data-val="${data.value}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+                <button class="btn btn-icon btn-secondary btn-small del-env" data-id="${docSnap.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        `;
+        els.envVarsList.appendChild(row);
+        
+        row.querySelector('.copy-btn').onclick = () => {
+            navigator.clipboard.writeText(data.value);
+            showNotification('Copiado al portapapeles', 'success');
+        };
+        row.querySelector('.del-env').onclick = async () => {
+            await deleteDoc(doc(db, 'fastreds.github.io', state.user.uid, 'projects', currentProjId, 'envVars', docSnap.id));
+            renderEnvVars();
+        };
+    });
+}
+
+els.addEnvVarBtn.addEventListener('click', async () => {
+    const key = prompt('Nombre de la variable (ej. API_KEY):');
+    if (!key) return;
+    const value = prompt('Valor:');
+    if (!value) return;
+    
+    await addDoc(collection(db, 'fastreds.github.io', state.user.uid, 'projects', currentProjId, 'envVars'), {
+        key,
+        value,
+        createdAt: serverTimestamp()
+    });
+    renderEnvVars();
+});
+
+// --- Vault Logic ---
+els.openNewSecretModal.addEventListener('click', () => {
+    els.secretTitle.value = '';
+    els.secretContent.value = '';
+    els.secretCategory.value = '';
+    openModal('secretModal');
+});
+
+els.saveSecretBtn.addEventListener('click', async () => {
+    const title = els.secretTitle.value;
+    const content = els.secretContent.value;
+    const category = els.secretCategory.value || 'General';
+    if (!title || !content) return;
+    
+    await addDoc(collection(db, 'fastreds.github.io', state.user.uid, 'vault'), {
+        title,
+        content,
+        category,
+        updatedAt: serverTimestamp()
+    });
+    
+    closeModal();
+    renderVault();
+    updateCounts();
+});
+
+async function renderVault() {
+    els.vaultGrid.innerHTML = '';
+    const secrets = await getDocs(collection(db, 'fastreds.github.io', state.user.uid, 'vault'));
+    
+    secrets.forEach(docSnap => {
+        const data = docSnap.data();
+        const card = document.createElement('div');
+        card.className = 'card secret-card';
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="card-title">${data.title}</span>
+                <span class="badge badge-success">${data.category}</span>
+            </div>
+            <div class="item-row" style="margin-top: 10px;">
+                <code class="item-value">••••••••••••</code>
+                <div class="item-actions">
+                    <button class="btn btn-icon btn-secondary btn-small copy-secret">
+                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button class="btn btn-icon btn-secondary btn-small del-secret">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        els.vaultGrid.appendChild(card);
+        
+        card.querySelector('.copy-secret').onclick = () => {
+            navigator.clipboard.writeText(data.content);
+            showNotification('Secreto copiado', 'success');
+        };
+        card.querySelector('.del-secret').onclick = async () => {
+             if(confirm('¿Eliminar secreto?')) {
+                await deleteDoc(doc(db, 'fastreds.github.io', state.user.uid, 'vault', docSnap.id));
+                renderVault();
+                updateCounts();
+             }
+        };
+    });
+}
+
+// --- Notes Logic ---
+els.openNewNoteModal.addEventListener('click', () => {
+    els.noteTitle.value = '';
+    els.noteContent.value = '';
+    openModal('noteModal');
+});
+
+els.saveNoteBtn.addEventListener('click', async () => {
+    const title = els.noteTitle.value || 'Sin título';
+    const content = els.noteContent.value;
+    if (!content) return;
+    
+    await addDoc(collection(db, 'fastreds.github.io', state.user.uid, 'notes'), {
+        title,
+        content,
+        updatedAt: serverTimestamp()
+    });
+    
+    closeModal();
+    renderNotes();
+    updateCounts();
+});
+
+async function renderNotes() {
+    els.notesGrid.innerHTML = '';
+    const notes = await getDocs(query(collection(db, 'fastreds.github.io', state.user.uid, 'notes'), orderBy('updatedAt', 'desc')));
+    
+    notes.forEach(docSnap => {
+        const data = docSnap.data();
+        const card = document.createElement('div');
+        card.className = 'card note-card';
+        card.style.cursor = 'pointer';
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="card-title">${data.title}</span>
+                <button class="btn btn-icon btn-secondary btn-small del-note" style="width: 24px; height: 24px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <p class="text-dim" style="font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                ${data.content}
+            </p>
+        `;
+        els.notesGrid.appendChild(card);
+        
+        card.onclick = (e) => {
+            if (e.target.closest('.del-note')) return;
+            els.noteTitle.value = data.title;
+            els.noteContent.value = data.content;
+            openModal('noteModal');
+        };
+        
+        card.querySelector('.del-note').onclick = async (e) => {
+            e.stopPropagation();
+            if(confirm('¿Eliminar nota?')) {
+                await deleteDoc(doc(db, 'fastreds.github.io', state.user.uid, 'notes', docSnap.id));
+                renderNotes();
+                updateCounts();
+            }
+        };
+    });
+}
+
+// --- Global Helpers ---
+function loadViewData(view) {
+    if (view === 'dashboard') updateCounts();
+    if (view === 'projects') renderProjects();
+    if (view === 'vault') renderVault();
+    if (view === 'notes') renderNotes();
+}
+
 function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${type === 'success' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(59, 130, 246, 0.2)'};
-        border: 1px solid ${type === 'success' ? 'rgba(34, 197, 94, 0.5)' : 'rgba(59, 130, 246, 0.5)'};
-        color: ${type === 'success' ? '#86efac' : '#93c5fd'};
-        border-radius: 0.75rem;
-        backdrop-filter: blur(20px);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-        font-size: 0.9rem;
-        font-weight: 500;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
+    const n = document.createElement('div');
+    n.className = `badge badge-${type}`;
+    n.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 3000; padding: 12px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); animation: slideIn 0.3s ease;`;
+    n.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        ${message}
+    </div>`;
+    document.body.appendChild(n);
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+        n.style.opacity = '0';
+        n.style.transform = 'translateX(20px)';
+        n.style.transition = '0.3s';
+        setTimeout(() => n.remove(), 300);
+    }, 2000);
 }
 
-// Add notification animations
+// Add animation styles dynamically
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-    }
+    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 `;
 document.head.appendChild(style);
-
-
-// ==================== NOTES FUNCTIONALITY ====================
-
-// Notes Elements
-const noteTitle = document.getElementById('noteTitle');
-const noteContent = document.getElementById('noteContent');
-const addNoteBtn = document.getElementById('addNoteBtn');
-const cancelEditNoteBtn = document.getElementById('cancelEditNoteBtn');
-const notesContainer = document.getElementById('notesContainer');
-const notesLoading = document.getElementById('notesLoading');
-
-// Notes State
-let currentEditingNoteId = null;
-
-// Load Notes
-async function loadNotes() {
-    if (!currentUser) return;
-
-    notesLoading.classList.remove('hidden');
-    notesContainer.innerHTML = '';
-
-    try {
-        const notesRef = collection(db, 'fastreds.github.io.notas');
-        const q = query(notesRef, where('userId', '==', currentUser.uid), orderBy('updatedAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            displayEmptyNotes();
-        } else {
-            querySnapshot.forEach((doc) => {
-                const noteData = doc.data();
-                const noteElement = createNoteElement(doc.id, noteData);
-                notesContainer.appendChild(noteElement);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading notes:', error);
-        displayError('Error al cargar las notas');
-    } finally {
-        notesLoading.classList.add('hidden');
-    }
-}
-
-// Display Empty Notes State
-function displayEmptyNotes() {
-    notesContainer.innerHTML = `
-    <div class="notes-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
-        <h3>No hay notas aún</h3>
-        <p>Crea tu primera nota usando el formulario de arriba</p>
-    </div>
-    `;
-}
-
-// Create Note Element
-function createNoteElement(id, noteData) {
-    const noteDiv = document.createElement('div');
-    noteDiv.className = 'note-item';
-    noteDiv.dataset.noteId = id;
-
-    const date = noteData.updatedAt?.toDate() || new Date();
-    const formattedDate = formatDate(date.toISOString());
-
-    noteDiv.innerHTML = `
-        <div class="note-header">
-            <h3 class="note-title">${noteData.title || 'Sin título'}</h3>
-            <div class="note-actions">
-                <button class="note-btn edit-btn" onclick="editNote('${id}')" title="Editar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    Editar
-                </button>
-                <button class="note-btn delete-btn" onclick="deleteNote('${id}')" title="Eliminar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Eliminar
-                </button>
-            </div>
-        </div>
-        <div class="note-content">${noteData.content || ''}</div>
-        <div class="note-footer">
-            <span class="note-date">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                ${formattedDate}
-            </span>
-        </div>
-    `;
-
-    return noteDiv;
-}
-
-// Add/Update Note
-addNoteBtn.addEventListener('click', async () => {
-    const title = noteTitle.value.trim();
-    const content = noteContent.value.trim();
-
-    if (!title && !content) {
-        displayError('Por favor ingresa un título o contenido para la nota');
-        return;
-    }
-
-    if (!currentUser) return;
-
-    try {
-        const noteData = {
-            userId: currentUser.uid,
-            title: title || 'Sin título',
-            content: content,
-            updatedAt: serverTimestamp()
-        };
-
-        if (currentEditingNoteId) {
-            // Update existing note
-            const noteRef = doc(db, 'fastreds.github.io.notas', currentEditingNoteId);
-            await updateDoc(noteRef, noteData);
-            showNotification('Nota actualizada correctamente', 'success');
-            currentEditingNoteId = null;
-            addNoteBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Agregar Nota
-            `;
-            cancelEditNoteBtn.classList.add('hidden');
-        } else {
-            // Add new note
-            noteData.createdAt = serverTimestamp();
-            const notesRef = collection(db, 'fastreds.github.io.notas');
-            await addDoc(notesRef, noteData);
-            showNotification('Nota agregada correctamente', 'success');
-        }
-
-        noteTitle.value = '';
-        noteContent.value = '';
-        await loadNotes();
-    } catch (error) {
-        console.error('Error saving note:', error);
-        displayError('Error al guardar la nota');
-    }
-});
-
-// Edit Note (make function global)
-window.editNote = async (noteId) => {
-    if (!currentUser) return;
-
-    try {
-        const noteRef = doc(db, 'fastreds.github.io.notas', noteId);
-        const noteDoc = await getDoc(noteRef);
-
-        if (noteDoc.exists()) {
-            const noteData = noteDoc.data();
-            noteTitle.value = noteData.title || '';
-            noteContent.value = noteData.content || '';
-            currentEditingNoteId = noteId;
-
-            addNoteBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Actualizar Nota
-            `;
-            cancelEditNoteBtn.classList.remove('hidden');
-
-            // Scroll to form
-            noteTitle.focus();
-            noteTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    } catch (error) {
-        console.error('Error loading note for edit:', error);
-        displayError('Error al cargar la nota');
-    }
-};
-
-// Cancel Edit
-cancelEditNoteBtn.addEventListener('click', () => {
-    currentEditingNoteId = null;
-    noteTitle.value = '';
-    noteContent.value = '';
-    addNoteBtn.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Agregar Nota
-    `;
-    cancelEditNoteBtn.classList.add('hidden');
-});
-
-// Delete Note (make function global)
-window.deleteNote = async (noteId) => {
-    if (!currentUser) return;
-
-    if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
-        return;
-    }
-
-    try {
-        const noteRef = doc(db, 'fastreds.github.io.notas', noteId);
-        await deleteDoc(noteRef);
-        showNotification('Nota eliminada correctamente', 'success');
-        await loadNotes();
-
-        // Cancel edit if we're editing the deleted note
-        if (currentEditingNoteId === noteId) {
-            currentEditingNoteId = null;
-            noteTitle.value = '';
-            noteContent.value = '';
-            addNoteBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Agregar Nota
-            `;
-            cancelEditNoteBtn.classList.add('hidden');
-        }
-    } catch (error) {
-        console.error('Error deleting note:', error);
-        displayError('Error al eliminar la nota');
-    }
-};
-
-// Load notes when user logs in
-const originalShowDashboard = showDashboard;
-showDashboard = function () {
-    originalShowDashboard();
-    loadNotes();
-};
-
