@@ -1,325 +1,227 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FastReds | System Hub</title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Personal - Gestión Inteligente</title>
+  <meta name="description"
+    content="Dashboard personal con Firebase para gestionar proyectos de GitHub y recursos importantes">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="screen active">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <h1>Dashboard Personal</h1>
+          <p>Gestiona tus proyectos y recursos</p>
+        </div>
 
-    <!-- Background Elements -->
-    <div class="bg-vignette"></div>
-    <div class="bg-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
-
-    <!-- Auth Screen -->
-    <div id="authScreen" class="fullscreen-center">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="sidebar-logo" style="margin: 0 auto 20px; width: 48px; height: 48px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg>
-                </div>
-                <h2 id="authTitle">Bienvenido</h2>
-                <p id="authSubtitle" class="text-dim">Ingresa a tu centro de comando</p>
+        <div class="login-methods">
+          <form id="emailLoginForm" class="email-form">
+            <div class="form-group">
+              <label for="email">Correo electrónico</label>
+              <input type="email" id="email" required placeholder="tu@email.com">
             </div>
-            
-            <form id="authForm">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="authEmail" required placeholder="tu@email.com">
+            <div class="form-group">
+              <label for="password">Contraseña</label>
+              <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+          </form>
+
+          <p class="toggle-auth">
+            ¿No tienes cuenta? <a href="#" id="toggleSignup">Regístrate</a>
+          </p>
+        </div>
+
+        <div id="authError" class="error-message hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboardScreen" class="screen">
+    <nav class="navbar">
+      <div class="navbar-content">
+        <div class="navbar-brand">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <span>Dashboard</span>
+        </div>
+        <div class="navbar-actions">
+          <div class="user-info">
+            <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
+            <span id="userName"></span>
+          </div>
+          <button id="logoutBtn" class="btn btn-secondary">Cerrar Sesión</button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="dashboard-main">
+      <div class="dashboard-container">
+        <header class="dashboard-header">
+          <h1>Bienvenido de vuelta</h1>
+          <p>Gestiona tus proyectos y recursos desde un solo lugar</p>
+        </header>
+
+        <div class="cards-grid">
+          <!-- GitHub Projects Card -->
+          <div class="card github-card">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+              </div>
+              <div>
+                <h2>Proyectos GitHub</h2>
+                <p>Acceso rápido a tus repositorios</p>
+              </div>
+            </div>
+
+            <div class="github-config">
+              <div class="form-group">
+                <label for="githubToken">
+                  GitHub Personal Access Token
+                  <a href="https://github.com/settings/tokens/new?description=Dashboard%20Personal&scopes=repo"
+                    target="_blank" class="help-link" title="Crear nuevo token en GitHub">
+                    🔗 Crear Token
+                  </a>
+                </label>
+                <div class="input-with-button">
+                  <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx">
+                  <button id="saveTokenBtn" class="btn btn-small">Guardar</button>
                 </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="authPassword" required placeholder="••••••••">
+                <small>
+                  Necesitas un token con permisos <strong>repo</strong> para ver repositorios privados.
+                  <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens"
+                    target="_blank" class="help-link-small">
+                    📖 Más info
+                  </a>
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label for="githubUsername">
+                  Usuario de GitHub
+                  <a href="https://github.com" target="_blank" class="help-link" title="Ir a GitHub">
+                    🔗 GitHub
+                  </a>
+                </label>
+                <div class="input-with-button">
+                  <input type="text" id="githubUsername" placeholder="tu-usuario">
+                  <button id="loadReposBtn" class="btn btn-small">Cargar</button>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    <span id="authBtnText">Entrar</span>
+                <small>Puedes cambiar de usuario para ver repositorios de diferentes cuentas</small>
+              </div>
+            </div>
+
+            <div id="reposLoading" class="loading-state hidden">
+              <div class="spinner"></div>
+              <p>Cargando repositorios...</p>
+            </div>
+
+            <div id="reposContainer" class="repos-container"></div>
+          </div>
+
+          <!-- Laboral Calculator Card -->
+          <a href="laboral/index.html" class="card laboral-card"
+            style="text-decoration: none; color: inherit; transition: transform 0.2s;">
+            <div class="card-header">
+              <div class="card-icon" style="background: rgba(26, 42, 108, 0.1); color: #1a2a6c;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M2 12h20" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M5 8h14M5 16h14" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <div>
+                <h2>Calculadora Laboral</h2>
+                <p>Costo patronal y salario neto 2026</p>
+              </div>
+            </div>
+          </a>
+
+          <!-- Notes Card -->
+          <div class="card notes-card">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h2>Notas Rápidas</h2>
+                <p>Gestiona tus notas personales</p>
+              </div>
+            </div>
+
+            <div class="notes-form">
+              <div class="form-group">
+                <input type="text" id="noteTitle" placeholder="Título de la nota" maxlength="100">
+              </div>
+              <div class="form-group">
+                <textarea id="noteContent" placeholder="Escribe tu nota aquí..." rows="3" maxlength="500"></textarea>
+              </div>
+              <div class="notes-form-actions">
+                <button id="addNoteBtn" class="btn btn-primary btn-small">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    style="width: 16px; height: 16px;">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Agregar Nota
                 </button>
-            </form>
-            
-            <div style="margin-top: 24px; text-align: center; font-size: 0.9rem;">
-                <span id="authToggleText" class="text-dim">¿No tienes cuenta?</span>
-                <a href="#" id="authToggleLink" style="color: var(--primary); font-weight: 600; text-decoration: none; margin-left: 4px;">Regístrate</a>
+                <button id="cancelEditNoteBtn" class="btn btn-secondary btn-small hidden">Cancelar</button>
+              </div>
             </div>
-            
-            <div id="authError" class="hidden" style="margin-top: 20px; color: var(--danger); font-size: 0.85rem; text-align: center; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;"></div>
+
+            <div id="notesLoading" class="loading-state hidden">
+              <div class="spinner"></div>
+              <p>Cargando notas...</p>
+            </div>
+
+            <div id="notesContainer" class="notes-container"></div>
+          </div>
         </div>
-    </div>
+      </div>
+    </main>
+  </div>
 
-    <!-- Main App Layout -->
-    <div id="appContainer" class="app-container hidden">
-        
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7L12 12L22 7L12 2Z"/><path d="M2 17L12 22L22 17"/><path d="M2 12L12 17L22 12"/></svg>
-                </div>
-                <span class="sidebar-brand">HUB SYSTEM</span>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-item active" data-view="dashboard">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                    <span>Dashboard</span>
-                </div>
-                <div class="nav-item" data-view="projects">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    <span>Proyectos</span>
-                </div>
-                <div class="nav-item" data-view="vault">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <span>Bóveda</span>
-                </div>
-                <div class="nav-item" data-view="notes">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    <span>Notas</span>
-                </div>
-                <a href="laboral/index.html" class="nav-item" style="text-decoration: none; margin-top: auto;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><path d="M5 8h14M5 16h14"/></svg>
-                    <span>Calculadora</span>
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <img id="userAvatar" src="https://ui-avatars.com/api/?name=U" alt="Avatar" class="user-avatar">
-                    <div class="user-meta">
-                        <div id="userName" class="user-name">Usuario</div>
-                        <div class="user-role">Administrador</div>
-                    </div>
-                    <button id="logoutBtn" class="btn btn-icon btn-secondary" style="margin-left: auto; width: 32px; height: 32px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    </button>
-                </div>
-                <div class="cmd-box">
-                    <span class="kbd">⌘</span>
-                    <span class="kbd">K</span>
-                    <span>Acceso rápido</span>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            
-            <!-- Dashboard View -->
-            <section id="dashboardView" class="view-section active">
-                <div class="view-header">
-                    <h1>Resumen General</h1>
-                    <p class="section-desc">Bienvenido de nuevo a tu entorno seguro.</p>
-                </div>
-
-                <div class="grid grid-3">
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                                Proyectos
-                            </span>
-                            <span id="projCount" class="badge badge-primary">0</span>
-                        </div>
-                        <p class="text-dim" style="font-size: 0.9rem;">Repositorios de GitHub y proyectos locales gestionados.</p>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                Secretos
-                            </span>
-                            <span id="vaultCount" class="badge badge-success">0</span>
-                        </div>
-                        <p class="text-dim" style="font-size: 0.9rem;">Claves de API, contraseñas y variables sensibles.</p>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                Notas
-                            </span>
-                            <span id="notesCount" class="badge badge-primary">0</span>
-                        </div>
-                        <p class="text-dim" style="font-size: 0.9rem;">Pensamientos rápidos y documentación privada.</p>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-top: 24px;">
-                    <div class="card-header">
-                        <span class="card-title">Configuración GitHub</span>
-                    </div>
-                    <div class="grid grid-2">
-                        <div class="form-group">
-                            <label>Usuario GitHub</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="ghUsername" placeholder="ej. fastreds">
-                                <button id="loadReposBtn" class="btn btn-primary btn-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Personal Access Token (Opcional)</label>
-                            <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
-                        </div>
-                    </div>
-                    <button id="saveGhConfig" class="btn btn-secondary" style="width: 100%;">Guardar configuración base</button>
-                </div>
-            </section>
-
-            <!-- Projects View -->
-            <section id="projectsView" class="view-section">
-                <div class="view-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h1>Proyectos</h1>
-                        <button id="openNewProjectModal" class="btn btn-primary">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Nuevo Proyecto
-                        </button>
-                    </div>
-                    <p class="section-desc">Gestiona tus variables de entorno y accesos por proyecto.</p>
-                </div>
-
-                <div id="projectsLoading" class="hidden" style="text-align: center; padding: 40px;">
-                    <div class="loader" style="margin: 0 auto 12px;"></div>
-                    <p class="text-dim">Consultando repositorios...</p>
-                </div>
-
-                <div id="projectsGrid" class="grid grid-3">
-                    <!-- Projects will be injected here -->
-                </div>
-            </section>
-
-            <!-- Vault View -->
-            <section id="vaultView" class="view-section">
-                <div class="view-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h1>Bóveda de Secretos</h1>
-                        <button id="openNewSecretModal" class="btn btn-primary">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Agregar Secreto
-                        </button>
-                    </div>
-                    <p class="section-desc">Almacenamiento seguro para claves de API y contraseñas.</p>
-                </div>
-
-                <div id="vaultGrid" class="grid grid-2">
-                    <!-- Secrets grouped by category -->
-                </div>
-            </section>
-
-            <!-- Notes View -->
-            <section id="notesView" class="view-section">
-                <div class="view-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <h1>Notas Personales</h1>
-                        <button id="openNewNoteModal" class="btn btn-primary">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Nueva Nota
-                        </button>
-                    </div>
-                    <p class="section-desc">Espacio para documentación y notas rápidas.</p>
-                </div>
-
-                <div id="notesGrid" class="grid grid-3">
-                    <!-- Notes will be injected here -->
-                </div>
-            </section>
-
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="modalOverlay" class="fullscreen-center hidden" style="background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 2000;">
-        <!-- New Project Modal -->
-        <div id="projectModal" class="card hidden" style="width: 100%; max-width: 500px; padding: 32px;">
-            <h2 style="margin-bottom: 24px;">Configurar Proyecto</h2>
-            <div class="form-group">
-                <label>Nombre del Proyecto</label>
-                <input type="text" id="projName" placeholder="ej. Mi App Increíble">
-            </div>
-            <div class="form-group">
-                <label>Repositorio GitHub (opcional)</label>
-                <select id="projRepoSelect">
-                    <option value="">Ninguno</option>
-                </select>
-            </div>
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button class="btn btn-secondary closeModalBtn" style="flex: 1;">Cancelar</button>
-                <button id="saveProjectBtn" class="btn btn-primary" style="flex: 1;">Guardar</button>
-            </div>
-        </div>
-
-        <!-- Project Details / Env Vars Modal -->
-        <div id="envVarsModal" class="card hidden" style="width: 100%; max-width: 650px; padding: 32px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <div>
-                    <h2 id="envVarsProjName">Nombre Proyecto</h2>
-                    <p class="text-dim">Variables de Entorno</p>
-                </div>
-                <button id="addEnvVarBtn" class="btn btn-primary btn-small">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Nuevo
-                </button>
-            </div>
-            
-            <div id="envVarsList" class="item-list" style="margin-bottom: 24px; max-height: 400px; overflow-y: auto;">
-                <!-- List of variables -->
-            </div>
-
-            <div style="display: flex; gap: 12px;">
-                <button class="btn btn-secondary closeModalBtn" style="flex: 1;">Cerrar</button>
-            </div>
-        </div>
-
-        <!-- New Secret Modal -->
-        <div id="secretModal" class="card hidden" style="width: 100%; max-width: 450px; padding: 32px;">
-            <h2 style="margin-bottom: 24px;">Nuevo Secreto</h2>
-            <div class="form-group">
-                <label>Título / Key</label>
-                <input type="text" id="secretTitle" placeholder="ej. AWS_SECRET_KEY">
-            </div>
-            <div class="form-group">
-                <label>Contenido</label>
-                <textarea id="secretContent" rows="3" placeholder="Ingresa el valor secreto..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Categoría</label>
-                <input type="text" id="secretCategory" placeholder="ej. Producción">
-            </div>
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button class="btn btn-secondary closeModalBtn" style="flex: 1;">Cancelar</button>
-                <button id="saveSecretBtn" class="btn btn-primary" style="flex: 1;">Guardar Secreto</button>
-            </div>
-        </div>
-
-        <!-- Note Modal -->
-        <div id="noteModal" class="card hidden" style="width: 100%; max-width: 600px; padding: 32px;">
-            <h2 style="margin-bottom: 24px;">Nota</h2>
-            <div class="form-group">
-                <input type="text" id="noteTitle" placeholder="Título de la nota" style="font-size: 1.25rem; font-weight: 700; border-bottom: 1px solid var(--border-dim); background: transparent;">
-            </div>
-            <div class="form-group">
-                <textarea id="noteContent" rows="10" placeholder="Escribe aquí..."></textarea>
-            </div>
-            <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button class="btn btn-secondary closeModalBtn" style="flex: 1;">Cerrar</button>
-                <button id="saveNoteBtn" class="btn btn-primary" style="flex: 1;">Guardar Nota</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase SDK -->
-    <script type="module" src="app.js"></script>
-
+  <!-- Firebase SDK -->
+  <script type="module" src="app.js"></script>
 </body>
+
 </html>
