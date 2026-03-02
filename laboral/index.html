@@ -4,107 +4,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Costo Laboral 2026 - Costa Rica</title>
+    <title>Calculadora de Negocio y RRHH 2026 - Costa Rica</title>
     <link rel="stylesheet" href="styles.css">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
     <div class="container">
         <header>
-            <h1>Calculadora de Costo Real Patronal 2026</h1>
-            <p>Basado en Salarios Mínimos MTSS y Legislación Laboral de Costa Rica</p>
+            <h1>Calculadora de Negocio 2026</h1>
+            <p>Costos, IVA, Renta y Margen de Utilidad</p>
+            <div id="print-date" class="print-only"
+                style="display: none; font-size: 0.9rem; color: #666; margin-top: 10px;"></div>
+            <button onclick="resetAll()" class="no-print"
+                style="margin-top:10px; background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Borrar
+                Todo</button>
         </header>
 
         <div class="main-grid">
             <!-- Columna Izquierda: Configuración -->
-            <div class="card">
-                <h2>1. Salario y Categoría 2026</h2>
-                <div class="form-group">
-                    <label>Categoría MTSS (Mínimos 2026)</label>
-                    <select id="categoriaMtss">
-                        <option value="custom">Personalizado / Otro</option>
-                        <option value="268731.31" selected>Servicio Doméstico (₡268,731.31)</option>
-                        <option value="373092.30">Trabajador No Calificado (Genérico) (₡373,092.30)</option>
-                        <option value="405710.70">Trabajador Semicalificado (Genérico) (₡405,710.70)</option>
-                        <option value="419755.80">Trabajador Calificado (Genérico) (₡419,755.80)</option>
-                        <option value="487335.00">Trabajador Especializado (Genérico) (₡487,335.00)</option>
-                        <option value="496838.17">Técnico Medio Educación Diversificada (₡496,838.17)</option>
-                        <option value="542096.58">Técnico de Educación Superior (₡542,096.58)</option>
-                        <option value="585484.58">Diplomado de Educación Superior (₡585,484.58)</option>
-                        <option value="664078.07">Bachiller Universitario (₡664,078.07)</option>
-                        <option value="796921.00">Licenciado Universitario (₡796,921.00)</option>
-                    </select>
+            <div class="col-left">
+                <div class="card" id="card-config">
+                    <h2 class="card-header-toggle" onclick="toggleCard('card-config')">
+                        1. Configuración de Negocio <span class="toggle-icon">▼</span>
+                    </h2>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label>Ingreso Total o Presupuesto Mensual (₡)</label>
+                            <input type="number" id="ingresoTotal" value="5000000">
+                        </div>
+                        <div class="form-group">
+                            <label>Tasa de IVA del Proyecto</label>
+                            <select id="tasaIva">
+                                <option value="0.13" selected>General (13%)</option>
+                                <option value="0.04">Salud (4%)</option>
+                                <option value="0.02">Específicos (2%)</option>
+                                <option value="0.01">Canasta (1%)</option>
+                                <option value="0">Exento (0%)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Régimen de Renta</label>
+                            <select id="tipoRenta">
+                                <option value="juridica" selected>Persona Jurídica (Empresa)</option>
+                                <option value="fisica">Persona Física (Actividad Lucrativa)</option>
+                                <option value="fija">Tasa Personalizada</option>
+                            </select>
+                        </div>
+                        <div id="pymeThresholdGroup" class="form-group">
+                            <label>Umbral de Ingresos para Tasa 30% (Anual)</label>
+                            <div style="display: flex; gap: 4px;">
+                                <input type="number" id="limiteRenta30" value="119174000" style="flex: 1;">
+                                <button type="button" onclick="aplicarSugerenciaRenta()" class="btn-suggest"
+                                    title="Aplicar valor legal 2026">Sugerir</button>
+                            </div>
+                            <small id="hintRenta"
+                                style="color: #666; display: block; margin-top: 5px; font-size: 0.7rem;">
+                                Sugerencia Legal 2026: ₡119,174,000 anuales.
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label>Previsión Horas Extra (%)</label>
+                            <input type="number" id="porcHorasExtra" value="1.5" step="0.1">
+                            <small style="color: #666;">Impacto estimado sobre la planilla (Sugerencia: 1.5% ≈ 1.5
+                                horas/mes).</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Feriados Trabajados (Promedio Mensual)</label>
+                            <input type="number" id="feriadosMes" value="1" step="1" min="0" max="4">
+                            <small style="color: #666;">Días al mes que se pagan doble (Promedio anual: 1
+                                día/mes).</small>
+                        </div>
+                        <div id="rentaFijaGroup" class="form-group" style="display: none;">
+                            <label>Tasa Personalizada (%)</label>
+                            <input type="number" id="tasaRenta" value="30">
+                        </div>
+                        <div id="infoRenta"
+                            style="font-size: 0.75rem; color: #666; background: #f0f4f8; padding: 8px; border-radius: 4px; margin-bottom: 15px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Póliza Responsabilidad Civil INS (%)</label>
+                            <input type="number" id="porcRespCivil" value="0.2" step="0.01">
+                            <small style="color: #666;">Costo estimado promedio INS.</small>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Salario Mensual Bruto (₡)</label>
-                    <input type="number" id="salarioBruto" value="373092.30">
+                <!-- Personal -->
+                <div class="card" id="card-planilla">
+                    <h2 class="card-header-toggle" onclick="toggleCard('card-planilla')">
+                        2. Personal Requerido (Planilla) <span class="toggle-icon">▼</span>
+                    </h2>
+                    <div class="card-content">
+                        <p style="font-size: 0.85rem; color: #666; margin-top: -10px; margin-bottom: 15px;">Incluye el
+                            pago
+                            de todas las cargas sociales y provisiones de ley (Aguinaldo, Cesantía, Vacaciones).</p>
+
+                        <div class="form-box">
+                            <div class="form-group">
+                                <label>Puesto o Rol</label>
+                                <input type="text" id="empPuesto" placeholder="Ej. Desarrollador, Auxiliar...">
+                            </div>
+                            <div class="form-group">
+                                <label>Categoría MTSS (Mínimos 2026)</label>
+                                <select id="empCategoria">
+                                    <option value="custom">Personalizado / Otro</option>
+                                    <option value="268731.31">Servicio Doméstico (₡268,731.31)</option>
+                                    <option value="373092.30" selected>Trabajador No Calificado (Genérico) (₡373,092.30)
+                                    </option>
+                                    <option value="405710.70">Trabajador Semicalificado (Genérico) (₡405,710.70)
+                                    </option>
+                                    <option value="419755.80">Trabajador Calificado (Genérico) (₡419,755.80)</option>
+                                    <option value="487335.00">Trabajador Especializado (Genérico) (₡487,335.00)</option>
+                                    <option value="496838.17">Técnico Medio Educación Diversificada (₡496,838.17)
+                                    </option>
+                                    <option value="542096.58">Técnico de Educación Superior (₡542,096.58)</option>
+                                    <option value="585484.58">Diplomado de Educación Superior (₡585,484.58)</option>
+                                    <option value="664078.07">Bachiller Universitario (₡664,078.07)</option>
+                                    <option value="796921.00">Licenciado Universitario (₡796,921.00)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Salario Mensual Bruto (₡)</label>
+                                <input type="number" id="empSalario" value="373092.30">
+                            </div>
+                            <div class="form-group">
+                                <label>Cantidad de Personas</label>
+                                <input type="number" id="empCantidad" value="1" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Jornada</label>
+                                <select id="empJornada">
+                                    <option value="1">Completa (1.0)</option>
+                                    <option value="0.5">Media (0.5)</option>
+                                    <option value="0.25">Cuarta (0.25)</option>
+                                </select>
+                            </div>
+                            <button type="button" id="btnAgregarEmpleado" class="btn-primary-action">+ Agregar
+                                Personal</button>
+                        </div>
+
+                        <div id="listaEmpleados" class="item-list"></div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Horas Extra Mensuales (Estimadas)</label>
-                    <input type="number" id="horasExtra" value="0" min="0">
-                </div>
+                <!-- Tercerizados -->
+                <div class="card" id="card-tercerizados">
+                    <h2 class="card-header-toggle" onclick="toggleCard('card-tercerizados')">
+                        3. Servicios Tercerizados (Outsourcing) <span class="toggle-icon">▼</span>
+                    </h2>
+                    <div class="card-content">
+                        <p style="font-size: 0.85rem; color: #666; margin-top: -10px; margin-bottom: 15px;">Servicios
+                            profesionales por honorarios sin cargas sociales (Ej. Salud Ocupacional, Enfermería,
+                            Contabilidad).</p>
 
-                <h2>2. Feriados a trabajar en 2026</h2>
-                <div class="feriados-grid" id="listaFeriados">
-                    <!-- Generado por JS -->
-                </div>
-                <div class="info-legal">
-                    <strong>Nota:</strong> En pago mensual, si se trabaja un feriado (sea obligatorio o no), se debe
-                    pagar un día adicional para completar el pago doble.
+                        <div class="form-box">
+                            <div class="form-group">
+                                <label>Servicio</label>
+                                <input type="text" id="tervServicio" placeholder="Ej. Salud Ocupacional">
+                            </div>
+                            <div class="form-group">
+                                <label>Costo Mensual (₡)</label>
+                                <input type="number" id="tervCosto" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Tasa IVA del Servicio</label>
+                                <select id="tervTasaIva">
+                                    <option value="0.13" selected>13% (General)</option>
+                                    <option value="0.04">4% (Salud)</option>
+                                    <option value="0.02">2%</option>
+                                    <option value="0.01">1%</option>
+                                    <option value="0">0% (Exento)</option>
+                                </select>
+                            </div>
+                            <button type="button" id="btnAgregarTercerizado" class="btn-secondary-action">+ Agregar
+                                Servicio</button>
+                        </div>
+
+                        <div id="listaTercerizados" class="item-list"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Columna Derecha: Desglose Mensual -->
-            <div class="card">
-                <h2>Resumen Mensual Estimado</h2>
+            <!-- Columna Derecha: Resultados -->
+            <div class="col-right">
+                <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button type="button" onclick="window.print()" class="btn-primary-action"
+                        style="margin-bottom: 0; background: #2c3e50; flex: 1; min-width: 120px;">
+                        🖨️ Reporte
+                    </button>
+                    <button type="button" onclick="exportarJSON()" class="btn-secondary-action"
+                        style="margin-bottom: 0; background: #34495e; flex: 1; min-width: 120px;">
+                        💾 Exportar
+                    </button>
+                    <button type="button" onclick="document.getElementById('importFile').click()"
+                        class="btn-secondary-action"
+                        style="margin-bottom: 0; background: #7f8c8d; flex: 1; min-width: 120px;">
+                        📂 Importar
+                    </button>
+                    <input type="file" id="importFile" style="display: none;" accept=".json"
+                        onchange="importarJSON(event)">
+                </div>
+
+                <!-- Resumen Financiero -->
+                <div class="card projection-card"
+                    style="background: linear-gradient(135deg, #1a2a6c, #0d1b2a); color: white;">
+                    <h2 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.2);">Resumen Financiero Mensual
+                    </h2>
+
+                    <div class="stat-grid" style="grid-template-columns: 1fr; margin-top: 15px;">
+                        <div class="stat-box"
+                            style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3);">
+                            <span class="label">Ingresos Presupuestados</span>
+                            <span class="value" id="res-ingresos" style="color: #2ecc71;">₡0.00</span>
+                        </div>
+                    </div>
+
+                    <table class="results-table" style="color: white; border: none; margin-top: 20px;">
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Ingreso Neto (Ventas sin IVA)</td>
+                            <td id="res-ingreso-neto" style="text-align: right;">₡0.00</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Neto IVA por Pagar (Débito - Crédito)</td>
+                            <td id="res-iva-neto" style="text-align: right; color: #ff6b6b;">₡0.00</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Costo Total Planilla (Incluye cargas)</td>
+                            <td id="res-planilla" style="text-align: right;">₡0.00</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Costo Total Tercerizados</td>
+                            <td id="res-tercerizados" style="text-align: right;">₡0.00</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Póliza Responsabilidad Civil (INS)</td>
+                            <td id="res-resp-civil" style="text-align: right;">₡0.00</td>
+                        </tr>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.2);">
+                            <td style="color: #e74c3c; font-weight: 600; padding-top: 15px;">COSTO OPERATIVO TOTAL</td>
+                            <td id="res-costos"
+                                style="color: #e74c3c; font-weight: 700; text-align: right; padding-top: 15px;">₡0.00
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Utilidad antes de Renta</td>
+                            <td id="res-utilidad-bruta" style="text-align: right;">₡0.00</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <td>Impuesto Renta Estimado</td>
+                            <td id="res-renta-monto" style="text-align: right;">-₡0.00</td>
+                        </tr>
+                    </table>
+
+                    <div class="stat-grid" style="grid-template-columns: 1fr; margin-top: 25px;">
+                        <div class="stat-box" id="margen-box"
+                            style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3);">
+                            <span class="label">Utilidad Neta Final</span>
+                            <span class="value" id="res-margen" style="color: #2ecc71; font-size: 2rem;">₡0.00</span>
+                            <span id="res-porcentaje-margen"
+                                style="display: block; font-size: 1.2rem; margin-top: 8px; font-weight: 600;">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <h2
+                        style="font-size: 1.1rem; color: var(--primary); border-bottom: 2px solid var(--bg); padding-bottom: 8px;">
+                        Distribución de Egresos vs Utilidad</h2>
+                    <div class="chart-container">
+                        <canvas id="costChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="card-desglose">
+            <h2 class="card-header-toggle" onclick="toggleCard('card-desglose')">
+                Desglose de Costos de Planilla <span class="toggle-icon">▼</span>
+            </h2>
+            <div class="card-content">
                 <table class="results-table">
                     <tr>
-                        <td>Salario Base</td>
-                        <td id="m-base">₡0.00</td>
-                    </tr>
-                    <tr>
-                        <td>Pago Horas Extra (1.5x)</td>
-                        <td id="m-extras">₡0.00</td>
-                    </tr>
-                    <tr>
-                        <td>Pago Feriados Trabajados (Doble)</td>
-                        <td id="m-feriados">₡0.00</td>
-                    </tr>
-                    <tr style="background: #f8f9fa;">
-                        <td><strong>Bruto Total Devengado</strong></td>
-                        <td id="m-bruto-total">₡0.00</td>
+                        <td>Salarios Base Brutos</td>
+                        <td id="det-salarios">₡0.00</td>
                     </tr>
                     <tr>
                         <td>CCSS Patronal (26.83%)</td>
-                        <td id="m-ccss">₡0.00</td>
+                        <td id="det-ccss">₡0.00</td>
                     </tr>
                     <tr>
                         <td>Provisión Aguinaldo (8.33%)</td>
-                        <td id="m-aguinaldo">₡0.00</td>
+                        <td id="det-aguinaldo">₡0.00</td>
                     </tr>
                     <tr>
                         <td>Provisión Vacaciones (4.17%)</td>
-                        <td id="m-vacaciones">₡0.00</td>
+                        <td id="det-vacaciones">₡0.00</td>
                     </tr>
                     <tr>
                         <td>Provisión Cesantía (5.33%)</td>
-                        <td id="m-cesantia">₡0.00</td>
+                        <td id="det-cesantia">₡0.00</td>
                     </tr>
                     <tr>
                         <td>Seguro Riesgos (INS Est. 2.5%)</td>
-                        <td id="m-ins">₡0.00</td>
+                        <td id="det-ins">₡0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Provisión Pago Feriados (Doble)</td>
+                        <td id="det-feriados">₡0.00</td>
                     </tr>
                     <tr class="total-row">
-                        <td>COSTO PATRONAL REAL</td>
-                        <td id="m-total">₡0.00</td>
+                        <td>COSTO PATRONAL TOTAL</td>
+                        <td id="det-total-planilla">₡0.00</td>
                     </tr>
                 </table>
                 <p style="font-size: 0.75rem; color: #888; margin-top: 15px;">
@@ -113,80 +332,22 @@
             </div>
         </div>
 
-        <!-- Nueva Sección: Resumen para el Empleado -->
-        <div class="card" style="border-left: 5px solid var(--secondary);">
-            <h2>Estimado para el Empleado (Neto)</h2>
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <span class="label">Salario Bruto</span>
-                    <span class="value" id="e-bruto">₡0.00</span>
-                </div>
-                <div class="stat-box">
-                    <span class="label">Cargas Sociales (10.67%)</span>
-                    <span class="value" id="e-cargas" style="color: #e74c3c;">₡0.00</span>
-                </div>
-                <div class="stat-box" style="background: rgba(39, 174, 96, 0.1);">
-                    <span class="label">SALARIO NETO ESTIMADO</span>
-                    <span class="value" id="e-neto" style="color: var(--secondary);">₡0.00</span>
-                </div>
-            </div>
-            <div class="info-legal" style="background: #e8f8f5; border-left-color: var(--secondary);">
-                <strong>Nota:</strong> Este cálculo del neto es aproximado y solo deduce las cargas sociales de ley
-                (CCSS 9.67% + Banco Popular 1%). No incluye Impuesto sobre la Renta ni deducciones por embargos,
-                créditos o asociaciones solidaristas.
-            </div>
-        </div>
-
-        <!-- Fila Inferior: Proyección Anual -->
-        <div class="card projection-card">
-            <h2>Proyección Presupuestaria Anual 2026</h2>
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <span class="label">Total Salarios + Extras</span>
-                    <span class="value" id="a-salarios">₡0.00</span>
-                </div>
-                <div class="stat-box">
-                    <span class="label">Total Cargas Sociales</span>
-                    <span class="value" id="a-cargas">₡0.00</span>
-                </div>
-                <div class="stat-box">
-                    <span class="label">Aguinaldo Completo</span>
-                    <span class="value" id="a-aguinaldo">₡0.00</span>
-                </div>
-                <div class="stat-box" style="background: var(--secondary);">
-                    <span class="label">PRESUPUESTO ANUAL TOTAL</span>
-                    <span class="value" id="a-total">₡0.00</span>
-                </div>
-            </div>
-            <div style="margin-top: 20px; font-size: 0.85rem; opacity: 0.9;">
-                Esta proyección incluye los 12 salarios base, el pago de los feriados seleccionados, las extras
-                constantes y todas las prestaciones legales acumuladas durante el año.
-            </div>
-        </div>
-
-        <!-- Sección de Enlaces de Interés -->
-        <div class="card">
-            <h2>Enlaces de Interés y Consultas Oficiales</h2>
-            <div class="links-grid">
+        <!-- Enlaces de Interés -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>Enlaces de Interés</h2>
+            <div class="links-grid" style="grid-template-columns: 1fr;">
                 <a href="https://app.powerbi.com/view?r=eyJrIjoiYjQ5NWI4NWMtMGEwMy00NDEzLTg4MDItYzY1MmNkNzI5YjRkIiwidCI6IjM1ZDRkMWFhLWFlYTItNDI3Ny1iMGUyLWJkNDM3OWQ2OGVkMiJ9"
-                    target="_blank" class="link-button">
+                    target="_blank" class="link-button" style="padding: 10px;">
                     <span>📊 Lista de Salarios Mínimos (MTSS)</span>
                 </a>
-                <a href="https://sfa.ccss.sa.cr/serviciosenlinea/" target="_blank" class="link-button">
-                    <span>🏥 Consulta Morosidad / Estado (CCSS)</span>
-                </a>
-                <a href="https://www.ins-cr.com/seguros/riesgos-del-trabajo/" target="_blank" class="link-button">
-                    <span>🛡️ Seguro Riesgos del Trabajo (INS)</span>
-                </a>
-                <a href="https://www.mtss.go.cr/buscador/Laboral.aspx" target="_blank" class="link-button">
-                    <span>⚖️ Buscador de Normativa (MTSS)</span>
-                </a>
-                <a href="https://drive.google.com/file/d/1hTIxhJuf73bi58CdZvA2FyJxmDM9m9U_/view" target="_blank"
-                    class="link-button">
-                    <span>📄 Lista de Salarios (Drive)</span>
+                <a href="https://sfa.ccss.sa.cr/serviciosenlinea/" target="_blank" class="link-button"
+                    style="padding: 10px;">
+                    <span>🏥 Consulta Morosidad (CCSS)</span>
                 </a>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 
     <script src="script.js"></script>

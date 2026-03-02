@@ -6,7 +6,8 @@
 // 2. La autenticación de usuarios
 // 3. Las configuraciones de seguridad en Firebase Console
 
-export const firebaseConfig = {
+// Your web app's Firebase configuration
+const firebaseConfig = {
     apiKey: "AIzaSyDh2ACNSwZmVJMOtVXzEwjeqO_FsBPka6s",
     authDomain: "aid-server.firebaseapp.com",
     projectId: "aid-server",
